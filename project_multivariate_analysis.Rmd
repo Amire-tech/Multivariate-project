@@ -1,0 +1,735 @@
+---
+title: "Exam project"
+output: html_document
+---
+
+
+```{r}
+
+# loading the package and reading the data file 
+
+install.packages("https://imada.sdu.dk/~chdj/ST514/F20/st514_1.0.tar.gz", repos = NULL, type = "source")
+
+library(st514)
+
+data("T1-6")
+
+```
+
+
+
+Dividing the dataset into the two respective groups ms and non_ms
+
+```{r}
+
+# Non-multiple-sclerosis (NMS) group data
+non_ms <- subset(tbl, V6 == 0)
+
+# Multiple-sclerosis (MS) group data
+ms <- subset(tbl, V6 == 1)
+
+```
+
+
+
+
+Descriptive statistics on the entire dataset
+
+```{r}
+
+# Mean vector entire dataset
+colMeans(tbl[1:5])
+
+# Variance-covariance matrix entire dataset
+cov(tbl[1:5]) * (nrow(tbl[1:5]) - 1) / nrow(tbl[1:5])
+
+# Correlation matrix entire dataset
+cor(tbl[1:5])
+
+```
+
+
+
+
+
+Descriptive statistics on NON_MS group
+
+```{r}
+# Mean vector for NON-MS group
+colMeans(non_ms[1:5])
+
+# Variance-covariance matrix for NON-MS group
+cov(non_ms[1:5]) * (nrow(non_ms[1:5]) - 1) / nrow(non_ms[1:5])
+
+# Correlation matrix for NON-MS group
+cor(non_ms[1:5])
+
+```
+
+
+
+Descriptive statistics on MS group
+
+```{r}
+
+# Mean vector for MS group
+colMeans(ms[1:5])
+
+# Variance-covariance matrix for MS group
+cov(ms[1:5]) * (nrow(ms[1:5]) - 1) / nrow(ms[1:5])
+
+# Correlation matrix for MS group
+cor(ms[1:5])
+
+
+```
+
+
+
+
+
+
+Checking for normality 
+
+```{r}
+
+# checking the whole dataset for normality using Q-Q plot of Mahalanobis
+
+# remove the label column
+df <- tbl[-6] 
+df
+
+# convert dataset to matrix form
+X <- as.matrix(df)
+X
+
+#calculate mean
+x.mean <- colMeans(X)
+
+# calculate covariance
+S <- cov(X)
+
+# defining p and n which is used in Q-Q plot of Mahalanobis
+p <- ncol(X)
+n <- nrow(X)
+
+
+D2 <- mahalanobis(X, colMeans(X), S)
+
+w_data <- qqplot(qchisq(ppoints(n, a = 0.5), df = p), D2,
+       ylab = "Mahalanobis distances",
+       xlab = bquote("Quantiles of " ~ chi[.(p)]^2),
+       main = bquote("Q-Q plot of Mahalanobis" * ~ D^2 * 
+                       " vs. quantiles of" * ~ chi[.(p)]^2))
+
+
+
+# checking using correlation coeffient
+cor(w_data$x, w_data$y)
+
+
+
+
+```
+
+
+
+
+```{r}
+# checking the NON_MS for normality using Q-Q plot of Mahalanobis
+
+df_nonms <- non_ms[-6]
+
+U <- as.matrix(df_nonms)
+U
+
+x.mean1 <- colMeans(U)
+
+S1 <- cov(U)
+
+
+p1 <- ncol(U)
+n1 <- nrow(U)
+
+
+D2 <- mahalanobis(U, colMeans(U), S1)
+
+data_nonms <- qqplot(qchisq(ppoints(n1, a = 0.5), df = p1), D2,
+       ylab = "Mahalanobis distances",
+       xlab = bquote("Quantiles of " ~ chi[.(p)]^2),
+       main = bquote("Q-Q plot of Mahalanobis" * ~ D^2 * 
+                       " vs. quantiles of" * ~ chi[.(p)]^2))
+
+
+cor(data_nonms$x, data_nonms$y)
+
+```
+
+
+
+```{r}
+# checking the MS for normality using Q-Q plot of Mahalanobis
+
+df_ms <- ms[-6]
+df_ms
+
+Y <- as.matrix(df_ms)
+Y
+
+x.mean2 <- colMeans(Y)
+
+S2 <- cov(Y)
+
+
+p2 <- ncol(Y)
+n2 <- nrow(Y)
+
+
+D2 <- mahalanobis(Y, colMeans(Y), S2)
+
+ms_data <- qqplot(qchisq(ppoints(n2, a = 0.5), df = p2), D2,
+       ylab = "Mahalanobis distances",
+       xlab = bquote("Quantiles of " ~ chi[.(p)]^2),
+       main = bquote("Q-Q plot of Mahalanobis" * ~ D^2 * 
+                       " vs. quantiles of" * ~ chi[.(p)]^2))
+
+cor(ms_data$x, ms_data$y)
+
+
+
+
+```
+
+
+
+
+
+
+50% Contour pair plot
+
+```{r}
+
+# creating function to pairwise display the contour plot for all variables  
+my_ellipse <- function(x, y, ...) {
+  X <- cbind(x, y)
+  X.mean <- colMeans(X)
+  S <- cov(X)
+  elip <- ellipse(S, centre = X.mean)
+  points(X, ...)
+  lines(elip)
+}
+pairs(df, lower.panel = my_ellipse, upper.panel = my_ellipse)
+
+
+
+```
+
+
+
+Testing whether the determinant is positive.
+
+The within variance-covariance matrices and associated determinants for each group can be calculated with the following R command: 
+
+```{r}
+
+# S1 is the covariance for the non_ms group
+
+det(S1)   # compute determinant of matrix
+
+
+# S2 is the covariance for the ms group
+
+det(S2)   # compute determinant of matrix
+
+
+
+# the determinants of both groups covariance were positive, thus multivariate statistical analysis can proceed. 
+
+```
+
+
+
+Testing covariance and mean vectors for the two populations
+
+```{r}
+
+library(st514)
+library(MASS)
+
+sclerosis_data <- data("T1-6")
+
+#box M covariance comparison
+install.packages("biotools")
+library(biotools)
+BoxM(tbl[1:5], tbl[6],Ftest = FALSE)
+
+library(st514)
+library(MASS)
+
+
+# comparing mean vectors
+tbl
+xnon <- colMeans(subset(tbl, V6 == 0)[,1:5])
+xms <- colMeans(subset(tbl, V6 == 1)[,1:5])
+Snon <- cov(subset(tbl, V6 == 0)[,1:5])
+Sms <- cov(subset(tbl, V6 == 1)[,1:5])
+n <- table(tbl$V6)
+p <- 5
+Sp <- (Snon + Sms) / 2
+xdif <- xnon - xms
+D2 <- t(xdif) %*% solve(Sp) %*% xdif
+T2 <- D2 * (sum(1 / n)^-1)
+T2
+
+
+qchisq(.95, df = p)    # 5 degrees of freedom
+
+```
+
+
+
+Detecting outliers according to page 189
+
+```{r}
+
+# STEP 1 - MAKE A DOT PLOT (HISTOGRAM)
+
+# the whole dataset
+hist(df$V1)
+hist(df$V2)
+hist(df$V3)
+hist(df$V4)
+hist(df$V5)
+
+
+
+# MS group
+hist(df_ms$V1)
+hist(df_ms$V2)
+hist(df_ms$V3)
+hist(df_ms$V4)
+hist(df_ms$V5)
+
+
+# NON_MS group
+hist(df_nonms$V1)
+hist(df_nonms$V2)
+hist(df_nonms$V3)
+hist(df_nonms$V4)
+hist(df_nonms$V5)
+
+```
+
+
+```{r}
+
+# STEP 2 - MAKE A SCATTERPLOT
+
+
+# Illustrate linked two-dimensional scatterplot. These data represents measurements variables v1,v2,v3,v4,v5
+# the figure shows two-dimensional scatter plots for paris of these variables organized as a 5x5 array. 
+# for example the picture on the upper right corner of the figure is a scatter plot of the pairs v1 and v5. 
+
+plot(non_ms[1:5])
+
+
+# Illustrate linked two-dimensional scatterplot. These data represents measurements variables v1,v2,v3,v4,v5
+# the figure shows two-dimensional scatter plots for paris of these variables organized as a 5x5 array. 
+# for example the picture on the upper right corner of the figure is a scatter plot of the pairs v1 and v5. 
+
+plot(ms[1:5])
+
+
+# the whole dataset 
+
+plot(df[1:5])
+
+
+```
+
+
+
+STEP 4 and 5: calculating standardized values and generalized squared distances
+
+```{r}
+
+# STEP 3 AND 4 
+
+
+colnames(tbl) <- c(paste("x", 1:5, sep=""), "d2")
+colnames(tbl)
+
+tblz <- round(scale(tbl[1:5]), 1)
+tblz
+
+colnames(tblz) <- c(paste("z", 1:5, sep = ""))
+colnames(tblz)
+
+T44 <- cbind(tbl[,1:5], 1:98, tblz, tbl[,5])
+T44
+
+colnames(T44)[c(6,12)] <- c("Obs", "d2")
+colnames(T44)[c(6,12)]
+
+max(T44$d2)
+
+which(T44$d2 == max(T44$d2))
+
+chiCrit <- qchisq(0.005, 5, lower.tail = F)
+chiCrit       # everything above 14.7496 = outlier 
+
+```
+
+
+
+
+
+Q-Q plot of Mahalanobis - after removing outliers:
+
+```{r}
+
+# Q-Q plot of Mahalanobis for the entire dataset 
+
+# removing the outliers
+re_out <- T44[-c(79, 84, 75, 93, 82, 85, 76), ]
+re_out
+
+
+new_df <- re_out[c(1:5)]
+
+M <- as.matrix(new_df)
+M
+
+x.mean <- colMeans(M)
+
+S <- cov(M)
+
+
+p <- ncol(M)
+n <- nrow(M)
+
+
+D2 <- mahalanobis(M, colMeans(M), S)
+
+w_data <- qqplot(qchisq(ppoints(n, a = 0.5), df = p), D2,
+       ylab = "Mahalanobis distances",
+       xlab = bquote("Quantiles of " ~ chi[.(p)]^2),
+       main = bquote("Q-Q plot of Mahalanobis" * ~ D^2 * 
+                       " vs. quantiles of" * ~ chi[.(p)]^2))
+
+
+
+# checking using correlation coeffient
+cor(w_data$x, w_data$y)
+
+
+# correlation coefficient improves to: 0.907944
+
+```
+
+
+
+
+Simultaneuos 95% T^2 confidence interval for each variable in the dataset. The formula on page 292 is used
+
+
+```{r}
+
+# F_5,93(0.05) = 2.312339
+qf(1-0.05, df1=5, df2=93)
+
+# v1
+x.mean[1] - sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[1] )
+x.mean[1] + sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[1] )
+# Interval: (33.83814 , 44.54961)
+
+# v2
+x.mean[2] - sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[2] )
+x.mean[2] + sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[2] )
+# Interval: (148.423  , 164.4913)
+
+# v3
+x.mean[3] - sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[3] )
+x.mean[3] + sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[3] )
+# Interval: (0.9381973 , 8.527109)
+
+# v4
+x.mean[4] - sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[4] )
+x.mean[4] + sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[4] )
+# Interval: (197.7265 , 217.9388)
+
+
+x.mean[5] - sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[5] )
+x.mean[5] + sqrt( ((p*(n-1))/(n*(n-p))) * 2.312339 * diag(S)[5] )
+# Interval: (1.002814 , 9.021675)
+
+
+```
+
+
+
+Descriptive statistics after removing outliers
+
+
+```{r}
+# Mean vector entire dataset
+colMeans(re_out[1:5])
+
+# Variance-covariance matrix entire dataset
+cov(re_out[1:5]) * (nrow(re_out[1:5]) - 1) / nrow(re_out[1:5])
+
+
+# variance entire dataset
+#var(ms[1:5]) * (nrow(ms[1:5]) - 1) / nrow(ms[1:5])
+
+# Correlation matrix entire dataset
+cor(re_out[1:5])
+
+
+```
+
+
+
+
+PCA (Principal Component Analysis)
+
+```{r}
+library(st514)
+
+sclerosis_data <- data("T1-6")
+
+ms2 <- tbl[1:5]
+
+#screeplot 
+
+ScreeP <- prcomp(tbl[1:5], scale = TRUE)
+screeplot(ScreeP, type = "line")
+
+#biplot
+
+ms.PC.cor = prcomp(tbl[1:5], scale=TRUE)
+ms.PC.cov = prcomp(tbl[1:5], scale=FALSE)
+
+biplot(ms.PC.cov)
+biplot(ms.PC.cor)  
+
+
+#PCA corr pc2
+
+n <- nrow(ms2)
+p <- ncol(ms2)
+R <- cor(ms2)
+r <- eigen(R)
+100 * r$values / sum(r$values)
+cumsum(100 * r$values / sum(r$values))
+rYX <- matrix(0, p, 2)
+rownames(rYX) <- colnames(non_ms2)
+colnames(rYX) <- c(paste("PC", 1:2, sep = ""))
+for (i in 1:p) {
+  for (j in 1:2) {
+    rYX[i, j] <- r$vectors[i, j] * sqrt(r$values[j]) / sqrt(R[i, i])
+  }
+}
+rYX
+
+#linear combinations PC2
+
+PC1 <- ((-0.862*tbl[3])+(0.766*tbl[5]))
+PC2 <- ((0.734*tbl[1])+(0.316*tbl[2])+(0.336*tbl[4]))
+PC1
+PC2
+plot(PC1$V3, PC2$V1)
+
+tbl_class <- data.frame(PC1$V3, PC2$V1, tbl[6])
+colnames(tbl_class) <- c("pc1", "pc2", "class")
+tbl_class$class <- as.factor(tbl_class$class)
+
+#classification PC2
+
+two.group.quadratic.classification <- function(data, grouping, newdata) {
+  dat.split <- split(data, grouping)
+  g1 <- as.data.frame(dat.split[1])
+  g2 <- as.data.frame(dat.split[2])
+  g1.means <- apply(g1, 2, mean)
+  g2.means <- apply(g2, 2, mean)
+  g1.covar <- cov(g1)
+  g2.covar <- cov(g2)
+  
+  prediction <- apply(newdata, 1, function(y) {
+    d2.y1 <- (y - g1.means) %*% solve(g1.covar) %*% (y - g1.means)
+    d2.y2 <- (y - g2.means) %*% solve(g2.covar) %*% (y - g2.means)
+    ifelse(d2.y1^2 > d2.y2^2, 2, 1)
+  })
+  
+  class.table <- table(grouping, prediction, dnn = c('Actual Group','Predicted Group'))
+  pred.errors <- sum(diag(t(apply(class.table, 2, rev)))) / dim(data)[1]
+  results <- list('Prediction'=prediction, 'Table of Predictions'=class.table, 'Error Rate'=pred.errors)
+  
+  return(results)
+}
+tbl.perf <- two.group.quadratic.classification(tbl_class[,1:2], tbl_class[,3], tbl_class[,1:2])
+tbl.perf
+
+
+#PCA corr PC3
+
+n <- nrow(ms2)
+p <- ncol(ms2)
+R <- cor(ms2)
+r <- eigen(R)
+100 * r$values / sum(r$values)
+cumsum(100 * r$values / sum(r$values))
+rYX <- matrix(0, p, 3)
+rownames(rYX) <- colnames(non_ms2)
+colnames(rYX) <- c(paste("PC", 1:3, sep = ""))
+for (i in 1:p) {
+  for (j in 1:3) {
+    rYX[i, j] <- r$vectors[i, j] * sqrt(r$values[j]) / sqrt(R[i, i])
+  }
+}
+rYX
+
+#linear combinations PC3
+
+PC1 <- ((-0.862*tbl[3])+(0.766*tbl[5]))
+PC2 <- ((0.316*tbl[2])+(0.336*tbl[4]))
+PC3 <- ((0.609*tbl[1]))
+#PC1
+#PC2
+#PC3
+
+tbl_class <- data.frame(PC1$V3, PC2$V2, PC3$V1, tbl[6])
+colnames(tbl_class) <- c("pc1", "pc2", "pc3", "class")
+tbl_class$class <- as.factor(tbl_class$class)
+
+#classification PC3
+
+two.group.quadratic.classification <- function(data, grouping, newdata) {
+  dat.split <- split(data, grouping)
+  g1 <- as.data.frame(dat.split[1])
+  g2 <- as.data.frame(dat.split[2])
+  g1.means <- apply(g1, 2, mean)
+  g2.means <- apply(g2, 2, mean)
+  g1.covar <- cov(g1)
+  g2.covar <- cov(g2)
+  
+  prediction <- apply(newdata, 1, function(y) {
+    d2.y1 <- (y - g1.means) %*% solve(g1.covar) %*% (y - g1.means)
+    d2.y2 <- (y - g2.means) %*% solve(g2.covar) %*% (y - g2.means)
+    ifelse(d2.y1^2 > d2.y2^2, 2, 1)
+  })
+  
+  class.table <- table(grouping, prediction, dnn = c('Actual Group','Predicted Group'))
+  pred.errors <- sum(diag(t(apply(class.table, 2, rev)))) / dim(data)[1]
+  results <- list('Prediction'=prediction, 'Table of Predictions'=class.table, 'Error Rate'=pred.errors)
+  
+  return(results)
+}
+tbl.perf <- two.group.quadratic.classification(tbl_class[,1:3], tbl_class[,4], tbl_class[,1:3])
+tbl.perf
+
+
+```
+
+
+
+
+
+
+
+
+Classification - QDA
+
+
+```{r}
+library(st514)
+library(MASS)
+
+sclerosis_data <- data("T1-6")
+
+#QDA on tbl
+two.group.quadratic.classification <- function(data, grouping, newdata) {
+  dat.split <- split(data, grouping)
+  g1 <- as.data.frame(dat.split[1])
+  g2 <- as.data.frame(dat.split[2])
+  g1.means <- apply(g1, 2, mean)
+  g2.means <- apply(g2, 2, mean)
+  g1.covar <- cov(g1)
+  g2.covar <- cov(g2)
+  
+  prediction <- apply(newdata, 1, function(y) {
+    d2.y1 <- (y - g1.means) %*% solve(g1.covar) %*% (y - g1.means)
+    d2.y2 <- (y - g2.means) %*% solve(g2.covar) %*% (y - g2.means)
+    ifelse(d2.y1^2 > d2.y2^2, 2, 1)
+  })
+  
+  class.table <- table(grouping, prediction, dnn = c('Actual Group','Predicted Group'))
+  pred.errors <- sum(diag(t(apply(class.table, 2, rev)))) / dim(data)[1]
+  results <- list('Prediction'=prediction, 'Table of Predictions'=class.table, 'Error Rate'=pred.errors)
+  
+  return(results)
+}
+tbl.perf <- two.group.quadratic.classification(tbl[,1:2], tbl[,6], tbl[,1:2])
+tbl.perf
+
+tbl.perf <- two.group.quadratic.classification(tbl[,1:3], tbl[,6], tbl[,1:3])
+tbl.perf
+
+tbl.perf <- two.group.quadratic.classification(tbl[,1:4], tbl[,6], tbl[,1:4])
+tbl.perf
+
+tbl.perf <- two.group.quadratic.classification(tbl[,1:5], tbl[,6], tbl[,1:5])
+tbl.perf
+
+# cross-validation 
+cv.prediction <- c()
+
+for (i in 1:dim(tbl)[1]) {
+  holdout <- tbl[-i,]
+  y <- as.numeric(tbl[i,1:2])
+  
+  holdout1 <- holdout[holdout$V6 == 0,][,1:2]
+  holdout2 <- holdout[holdout$V6 == 1,][,1:2]
+  
+  holdout1.means <- apply(holdout1, 2, mean)
+  holdout2.means <- apply(holdout2, 2, mean)
+  
+  holdout1.covar <- cov(holdout1)
+  holdout2.covar <- cov(holdout2)
+  
+  d2.y1 <- (y - holdout1.means) %*% solve(holdout1.covar) %*% (y - holdout1.means)
+  d2.y2 <- (y - holdout2.means) %*% solve(holdout2.covar) %*% (y - holdout2.means)
+  
+  group <- ifelse(d2.y1^2 > d2.y2^2, 2, 1)
+  cv.prediction <- append(cv.prediction, group)
+}
+
+table(tbl$V6, cv.prediction, dnn = c('Actual Group','Predicted Group'))
+
+
+
+```
+
+
+
+Logistic Regression
+
+```{r}
+
+#logistic regression
+sclerosis_data <- data("T1-6")
+library(caret)
+tbl
+tbl2 <- cbind(tbl$V1, tbl$V2)
+tbl$V6 <- as.factor(tbl$V6)
+train <- createDataPartition(tbl$V6, p = 0.7, list = FALSE)
+training <- tbl[train,]
+testing <- tbl[-train,]
+model_log <- train(V6~., data = training, method = "glm", family = "binomial")
+model_log
+pred <- predict(model_log, newdata = testing)
+caret::confusionMatrix(data = pred, testing$V6)
+
+```
+
+
